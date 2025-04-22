@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package base;
+import "api.proto";
+option go_package = "/base";
+enum ErrCode {
+  Success = 0;
+  ArgumentError = 1;
+}
+
+
+message BaseResp {
+  ErrCode errCode = 1;
+  string errMsg = 2;
+}
+
+message Empty{
+  
+}

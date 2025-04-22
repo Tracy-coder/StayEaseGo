@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package homestay_web;
+import "api.proto";
+import "base.proto";
+
+
+message Homestay {
+    int64   ID = 1;
+    string  title = 2;
+    string  subTitle = 3;
+    string  banner = 4;
+    string  info = 5;
+    int64   peopleNum = 6;            //容纳人的数量
+    int64   homestayBusinessBossID = 7;               //房东id
+    int64   rowState = 8;             //0:下架 1:上架
+    int64   rowType = 9;             //售卖类型0：按房间出售 1:按人次出售
+    string  foodInfo = 10;            //餐食标准
+    int64   foodPrice = 11;           //餐食价格(分)
+    int64   homestayPrice = 12;       //民宿价格(分)
+    int64   marketHomestayPrice = 13; //民宿市场价格(分)
+
+}
+message HomestayDetailReq {
+  int64   ID = 1;
+}
+message HomestayDetailResp {
+  Homestay homestay = 1;
+}
+
+message HomestayListReq {
+  int64 minPrice = 1;
+  int64 maxPrice = 2;
+  int64 minPeopleNum = 3;
+  int64 maxPeopleNum = 4;
+  int64 rowType = 5;
+  int64 offset = 6;
+  int64 limit = 7;
+  int64 homestayBusinessBossID = 8;
+}
+message HomestayListResp {
+  repeated Homestay homestays = 1;
+}
+
+message CreateHomestayReq {
+  Homestay homestay = 1;
+}
+
+message CreateHomestayResp {
+  Homestay homestay = 1;
+}
+
+message HomestayBusinessBossDetailReq{
+  int64 ID = 1;
+}
+
+message HomestayBusinessBossDetailResp{
+    int64 id = 1;
+    string mobile = 2;
+    string nickname = 3;
+    int32 sex = 4;
+    string avatar = 5;
+    string info = 6;
+}
+service homestay {
+    rpc homestayDetail(HomestayDetailReq) returns(HomestayDetailResp){
+        option (api.post) = "/api/v1/homestay/detail";
+    }
+    rpc homestayList(HomestayListReq) returns(HomestayListResp){
+        option (api.post) = "/api/v1/homestay/list";
+    }
+    rpc createHomestay(CreateHomestayReq) returns(base.Empty){
+        option (api.post) = "/api/v1/homestay";
+    }
+    rpc homestayBusinessBossDetail(HomestayBusinessBossDetailReq) returns(HomestayBusinessBossDetailResp){
+      option (api.post) = "/api/v1/homestayboss";
+    }
+}

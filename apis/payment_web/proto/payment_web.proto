@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package payment_web;
+import "api.proto";
+import "base.proto";
+
+message ThirdPaymentWxPayReq {
+	string orderSn = 1;
+    string serviceType = 2;
+}
+
+message ThirdPaymentWxPayResp {
+    string appid = 1;
+    string nonceStr = 2;
+    string paySign = 3;
+    string package = 4;
+    string timestamp = 5;
+    string signType = 6;
+}
+
+
+message ThirdPaymentWxPayCallbackReq {
+	}
+message ThirdPaymentWxPayCallbackResp {
+    string returnCode = 1;
+}
+
+service payment{
+    rpc ThirdPaymentWxPay(ThirdPaymentWxPayReq) returns (ThirdPaymentWxPayResp){
+        option (api.post) = "/api/v1/pay/wxpay";
+    }
+    rpc ThirdPaymentWxPayCallback(ThirdPaymentWxPayCallbackReq) returns (ThirdPaymentWxPayCallbackResp);
+    // option (api.post) = "/api/v1/pay/wxpay/callback";
+}

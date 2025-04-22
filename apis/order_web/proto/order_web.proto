@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package order_web;
+import "api.proto";
+import "base.proto";
+
+message HomestayOrder {
+  int64  ID = 1;
+  string sn = 2;
+  int64  userId = 3;
+  int64  homestayId = 4;
+  string title = 5;
+  string subTitle = 6;
+  string cover = 7;
+  string info = 8;
+  int64 peopleNum = 9;
+  int64 rowType = 10;
+  string foodInfo = 11;
+  int64 foodPrice = 12;
+  int64 homestayPrice = 13;
+  int64 marketHomestayPrice = 14;
+  int64 homestayUserId = 16;
+  int64 liveStartDate = 17;
+  int64 liveEndDate = 18;
+  int64 livePeopleNum = 19;
+  int64 tradeState = 20;
+  string tradeCode = 21;
+  string remark = 22;
+  int64 orderTotalPrice = 23;
+  int64 foodTotalPrice = 24;
+  int64 homestayTotalPrice = 25;
+  int64 createTime = 26;
+  int64 needFood = 27;
+}
+
+message CreateHomestayOrderReq {
+    int64  homestayId = 1;
+	bool   isFood = 2;
+	int64  liveStartTime = 3;
+	int64  liveEndTime = 4;
+    int64  livePeopleNum = 6;
+    string remark = 7;
+}
+message CreateHomestayOrderResp {
+  string sn = 1;
+}
+
+
+message  HomestayOrderDetailReq{
+  string sn = 1;
+}
+message  HomestayOrderDetailResp{
+  HomestayOrder homestayOrder= 1;
+}
+
+
+message UserHomestayOrderListReq {
+  int64           lastId = 1;
+  int64           pageSize = 2;
+  int64           traderState = 4;
+}
+message UserHomestayOrderListResp {
+  repeated HomestayOrder list = 1;
+}
+
+//service
+service order {
+    //民宿下订单
+    rpc createHomestayOrder(CreateHomestayOrderReq)returns(CreateHomestayOrderResp){
+        option (api.post) = "/api/v1/order";
+    }
+
+    //民宿订单详情
+    rpc homestayOrderDetail(HomestayOrderDetailReq)returns(HomestayOrderDetailResp){
+        option (api.post) = "/api/v1/order/detail";
+    }
+
+
+    //用户民宿订单
+    rpc userHomestayOrderList(UserHomestayOrderListReq)returns(UserHomestayOrderListResp){
+        option (api.post) = "/api/v1/order/list";
+    }
+}

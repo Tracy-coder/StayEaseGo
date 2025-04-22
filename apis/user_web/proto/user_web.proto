@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package user_web;
+import "api.proto";
+import "base.proto";
+message User{
+    int64 id = 1;
+    string mobile = 2;
+    string nickname = 3;
+    int32 sex = 4;
+    string avatar = 5;
+    string info = 6;
+}
+message UserRegisterReq{
+	string mobile = 1;
+	string password = 2;
+  string nickname = 3;
+}
+
+message UserRegisterResp{
+	string accessToken = 1;
+	string accessExpire = 2;
+	string refreshAfter = 3;
+}
+
+message UserLoginReq{
+	string mobile = 1;
+	string password = 2;
+}
+
+message UserLoginResp{
+	string accessToken = 1;
+	string accessExpire = 2;
+	string refreshAfter = 3;
+}
+message UserInfoResp{
+	string code = 1;
+	User user = 2;
+}
+
+message WXMiniAuthReq{
+    string code = 1;
+    string iv = 2;
+    string encryptedData = 3;
+}
+
+message WXMiniAuthResp{
+    string accessToken = 1;
+    string accessExpire = 2;
+    string refreshAfter = 3;
+}
+service user{
+  rpc Register(UserRegisterReq) returns (UserRegisterResp) {
+    option (api.post) = "/api/v1/register";
+  }
+  rpc Login(UserLoginReq)returns (UserLoginResp){
+    option (api.post) = "/api/v1/login";
+  }
+  rpc WXMiniAuth(WXMiniAuthReq)returns (WXMiniAuthResp){
+    option (api.post) = "/api/v1/wxlogin";
+  }
+  rpc UserInfo(base.Empty) returns (UserInfoResp){
+    option (api.get) = "/api/v1/user/info";
+  }
+}

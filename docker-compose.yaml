@@ -1,0 +1,94 @@
+version: "3.7"
+services:
+  # consul:
+  #   image: consul:1.15
+  #   command: agent -server -bootstrap-expect=1 -client=0.0.0.0 -ui
+  #   volumes:
+  #     - /data/consul:/consul/data
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #     - "172.19.67.198:host-gateway"
+  #   ports:
+  #     - "8500:8500"
+  #     - "8300:8300"
+  #     - "8301:8301"
+  #     - "8302:8302"
+  #     - "8600:8600/udp"
+  redis:
+    container_name: redis
+    hostname: redis
+    image: redis:latest
+    volumes:
+      - /data/redis/data:/data
+      - /data/redis/logs:/logs
+    ports:
+      - 6379:6379
+  mysql:
+    image: mysql:latest
+    volumes:
+      - /data/mysql:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_DATABASE=StayEaseGo
+      - MYSQL_ROOT_PASSWORD=root
+  es:
+    container_name: es
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
+    environment:
+      - discovery.type=single-node
+      - ELASTIC_PASSWORD=123456
+      - TZ=Asia/Shanghai
+    ports:
+      - "9201:9200"
+      - "9300:9300"
+    mem_limit: 1g
+    volumes: 
+      - /home/yjy/data/elasticsearch/data:/usr/share/elasticsearch/data
+      - /home/yjy/data/elasticsearch/plugins:/usr/share/elasticsearch/plugins
+      - /home/yjy/data/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+    networks:
+      - elastic
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.9.1
+    container_name: kibana
+    ports:
+      - 5601:5601
+    environment:
+      - ELASTICSEARCH_HOSTS=http://es:9200
+    networks:
+      - elastic
+    depends_on:
+      - es
+  kafka:
+    image: bitnami/kafka:3.6
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    # volumes:
+    #   - "/home/yjy/data/kafka/data:/bitnami"
+    environment:
+      # KRaft settings
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      # Listeners
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://host.docker.internal:9092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_JMX_HOSTNAME=${DOCKER_HOST_IP:-127.0.0.1}
+    # volumes:
+    #   - /home/yjy/data/kafka/data:/opt/kafka-logs
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 8088:8080
+    depends_on:
+      - kafka
+    environment:
+      DYNAMIC_CONFIG_ENABLED: "TRUE"
+networks:
+  elastic: 

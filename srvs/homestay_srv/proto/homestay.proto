@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+option go_package = ".;pb";
+
+package pb;
+//model
+
+message Empty{
+
+}
+message Homestay {
+    int64   ID = 1;
+    string  title = 2;
+    string  subTitle = 3;
+    string  banner = 4;
+    string  info = 5;
+    int64   peopleNum = 6;            //容纳人的数量
+    int64   homestayBusinessBossID = 7;               //房东id
+    int64   rowState = 8;             //0:下架 1:上架
+    int64   rowType = 9;             //售卖类型0：按房间出售 1:按人次出售
+    string  foodInfo = 10;            //餐食标准
+    int64   foodPrice = 11;           //餐食价格(分)
+    int64   homestayPrice = 12;       //民宿价格(分)
+    int64   marketHomestayPrice = 13; //民宿市场价格(分)
+
+}
+
+
+message HomestayDetailReq {
+  int64   ID = 1;
+}
+message HomestayDetailResp {
+  Homestay homestay = 1;
+}
+
+message HomestayListReq {
+  int64 minPrice = 1;
+  int64 maxPrice = 2;
+  int64 minPeopleNum = 3;
+  int64 maxPeopleNum = 4;
+  int64 homestayBusinessBossID = 5;
+  int64 rowType = 6;
+  int64 offset = 7;
+  int64 limit = 8;
+}
+message HomestayListResp {
+  repeated Homestay homestays = 1;
+}
+
+message CreateHomestayReq {
+  Homestay homestay = 1;
+}
+
+message CreateHomestayResp {
+  Homestay homestay = 1;
+}
+//service
+service homestay {
+    //homestayDetail
+    rpc homestayDetail(HomestayDetailReq) returns(HomestayDetailResp);
+    rpc homestayList(HomestayListReq) returns(HomestayListResp);
+    rpc createHomestay(CreateHomestayReq) returns(Empty);
+}
