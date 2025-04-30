@@ -47,3 +47,8 @@ func _homestaybusinessbossdetailMw() []app.HandlerFunc {
 	// your code...
 	return nil
 }
+
+func _homestay0Mw() []app.HandlerFunc {
+	// your code...
+	return nil
+}

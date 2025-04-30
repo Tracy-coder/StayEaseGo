@@ -40,10 +40,10 @@ func _wxminiauthMw() []app.HandlerFunc {
 
 func _userMw() []app.HandlerFunc {
 	// your code...
-	return []app.HandlerFunc{middleware.JWTAuth()}
+	return nil
 }
 
 func _userinfoMw() []app.HandlerFunc {
 	// your code...
-	return nil
+	return []app.HandlerFunc{middleware.JWTAuth()}
 }

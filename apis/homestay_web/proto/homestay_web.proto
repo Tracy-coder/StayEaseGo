@@ -73,6 +73,6 @@ service homestay {
         option (api.post) = "/api/v1/homestay";
     }
     rpc homestayBusinessBossDetail(HomestayBusinessBossDetailReq) returns(HomestayBusinessBossDetailResp){
-      option (api.post) = "/api/v1/homestayboss";
+      option (api.post) = "/api/v1/homestay/boss";
     }
 }

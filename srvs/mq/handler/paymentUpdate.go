@@ -7,10 +7,13 @@ import (
 	order_srv "StayEaseGo/srvs/order_srv/proto/gen"
 	payment_model "StayEaseGo/srvs/payment_srv/model"
 	"context"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func ThirdPaymentUpdatePayStatusNotifyHandler(payload model.ThirdPaymentUpdatePayStatusNotifyMessage) error {
 	var newState int64
+	log.Debug(payload)
 	if payload.PayStatus == payment_model.ThirdPaymentPayTradeStateSuccess {
 		newState = order_model.HomestayOrderTradeStateWaitUse
 	} else if payload.PayStatus == payment_model.ThirdPaymentPayTradeStateRefund {

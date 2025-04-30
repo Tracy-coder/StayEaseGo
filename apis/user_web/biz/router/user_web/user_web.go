@@ -21,12 +21,12 @@ func Register(r *server.Hertz) {
 		_api := root.Group("/api", _apiMw()...)
 		{
 			_v1 := _api.Group("/v1", _v1Mw()...)
-			_v1.POST("/login", append(_loginMw(), user_web.Login)...)
-			_v1.POST("/register", append(_registerMw(), user_web.Register)...)
-			_v1.POST("/wxlogin", append(_wxminiauthMw(), user_web.WXMiniAuth)...)
 			{
 				_user := _v1.Group("/user", _userMw()...)
 				_user.GET("/info", append(_userinfoMw(), user_web.UserInfo)...)
+				_user.POST("/login", append(_loginMw(), user_web.Login)...)
+				_user.POST("/register", append(_registerMw(), user_web.Register)...)
+				_user.POST("/wxlogin", append(_wxminiauthMw(), user_web.WXMiniAuth)...)
 			}
 		}
 	}

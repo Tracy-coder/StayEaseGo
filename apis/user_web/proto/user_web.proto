@@ -51,13 +51,13 @@ message WXMiniAuthResp{
 }
 service user{
   rpc Register(UserRegisterReq) returns (UserRegisterResp) {
-    option (api.post) = "/api/v1/register";
+    option (api.post) = "/api/v1/user/register";
   }
   rpc Login(UserLoginReq)returns (UserLoginResp){
-    option (api.post) = "/api/v1/login";
+    option (api.post) = "/api/v1/user/login";
   }
   rpc WXMiniAuth(WXMiniAuthReq)returns (WXMiniAuthResp){
-    option (api.post) = "/api/v1/wxlogin";
+    option (api.post) = "/api/v1/user/wxlogin";
   }
   rpc UserInfo(base.Empty) returns (UserInfoResp){
     option (api.get) = "/api/v1/user/info";

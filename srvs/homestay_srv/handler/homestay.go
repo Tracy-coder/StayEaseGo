@@ -183,13 +183,3 @@ func (s *HomestaySever) CreateHomestay(ctx context.Context, req *pb.CreateHomest
 	}
 	return &pb.Empty{}, nil
 }
-
-func (s *HomestaySever) CreateHomestayBusiness(ctx context.Context, req *pb.CreateHomestayReq) (*pb.Empty, error) {
-	var homestay model.Homestay
-	_ = copier.Copy(&homestay, req.Homestay)
-	result := s.svcCtx.SqlClient.Create(&homestay)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-	return &pb.Empty{}, nil
-}

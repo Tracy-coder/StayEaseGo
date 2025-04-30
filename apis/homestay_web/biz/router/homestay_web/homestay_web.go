@@ -22,11 +22,12 @@ func Register(r *server.Hertz) {
 		{
 			_v1 := _api.Group("/v1", _v1Mw()...)
 			_v1.POST("/homestay", append(_createhomestayMw(), homestay_web.CreateHomestay)...)
-			_v1.POST("/homestayboss", append(_homestaybusinessbossdetailMw(), homestay_web.HomestayBusinessBossDetail)...)
+			_homestay := _v1.Group("/homestay", _homestayMw()...)
+			_homestay.POST("/boss", append(_homestaybusinessbossdetailMw(), homestay_web.HomestayBusinessBossDetail)...)
 			{
-				_homestay := _v1.Group("/homestay", _homestayMw()...)
-				_homestay.POST("/detail", append(_homestaydetailMw(), homestay_web.HomestayDetail)...)
-				_homestay.POST("/list", append(_homestaylistMw(), homestay_web.HomestayList)...)
+				_homestay0 := _v1.Group("/homestay", _homestay0Mw()...)
+				_homestay0.POST("/detail", append(_homestaydetailMw(), homestay_web.HomestayDetail)...)
+				_homestay0.POST("/list", append(_homestaylistMw(), homestay_web.HomestayList)...)
 			}
 		}
 	}

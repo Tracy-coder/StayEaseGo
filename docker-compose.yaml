@@ -90,5 +90,18 @@ services:
       - kafka
     environment:
       DYNAMIC_CONFIG_ENABLED: "TRUE"
+  # nginx:
+  #   container_name: nginx
+  #   image: nginx:1.27.5-alpine
+  #   ports:
+  #     - 80:80
+  #     - 443:443
+  #   volumes:
+  #     - ./deploy/nginx/conf.d:/etc/nginx/conf.d
+  #     - /home/yjy/data/nginx/log:/var/log/nginx
+  #   environment:
+  #     - NGINX_PORT=80
+  #     - TZ=Asia/Shanghai
+  #   privileged: true
 networks:
   elastic: 

@@ -10,6 +10,7 @@ import (
 	"StayEaseGo/srvs/pkg/snowflake"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -21,6 +22,7 @@ import (
 	"github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type OrderSever struct {
@@ -48,6 +50,15 @@ func (s *OrderSever) CreateHomestayOrder(ctx context.Context, req *pb.CreateHome
 	}
 	if rpcResp == nil {
 		return nil, fmt.Errorf("homestay not exists:ID: %d", req.HomestayId)
+	}
+	start := time.Unix(req.LiveStartTime, 0)
+	end := time.Unix(req.LiveEndTime, 0)
+	result := s.svcCtx.SqlClient.Model(&model.HomestayOrder{}).Where(
+		"homestay_id = ? AND NOT (live_end_date < ? OR live_start_date > ?)",
+		req.HomestayId, start, end,
+	).First(&model.HomestayOrder{})
+	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("homestay is not available at this time:ID: %d", req.HomestayId)
 	}
 	order := new(model.HomestayOrder)
 	order.Sn = snowflake.GenerateOrderID()
@@ -78,7 +89,7 @@ func (s *OrderSever) CreateHomestayOrder(ctx context.Context, req *pb.CreateHome
 	}
 	order.HomestayTotalPrice = liveDays * order.HomestayPrice
 	order.OrderTotalPrice = order.FoodTotalPrice + order.HomestayTotalPrice
-	result := s.svcCtx.SqlClient.Create(&order)
+	result = s.svcCtx.SqlClient.Create(&order)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -124,18 +135,30 @@ func (s *OrderSever) UserHomestayOrderList(ctx context.Context, req *pb.UserHome
 func (s *OrderSever) UpdateHomestayOrderTradeState(ctx context.Context, req *pb.UpdateHomestayOrderTradeStateReq) (*pb.UpdateHomestayOrderTradeStateResp, error) {
 	var order model.HomestayOrder
 	log.Debugf("update order trade state:sn: %s, trade state: %d", req.Sn, req.TradeState)
-	result := s.svcCtx.SqlClient.Where(&model.HomestayOrder{Sn: req.Sn, DelState: model.NotDeleted}).First(&order)
+	tx := s.svcCtx.SqlClient.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	// 悲观锁
+	result := tx.Where(&model.HomestayOrder{Sn: req.Sn, DelState: model.NotDeleted}).First(&order).Clauses(clause.Locking{Strength: "UPDATE"}).Select("*")
 	if result.RowsAffected == 0 {
+		tx.Rollback()
 		return nil, fmt.Errorf("order not exists")
 	}
+
 	if !checkTradeState(order.TradeState, req.TradeState) {
+		tx.Rollback()
 		return nil, fmt.Errorf("update order trade state error")
 	}
-	// todo:并发?
-	res := s.svcCtx.SqlClient.Model(&model.HomestayOrder{}).Where("sn = ?", req.Sn).Update("trade_state", req.TradeState)
+
+	res := tx.Model(&model.HomestayOrder{}).Where("sn = ?", req.Sn).Update("trade_state", req.TradeState)
 	if res.Error != nil {
+		tx.Rollback()
 		return nil, res.Error
 	}
+	tx.Commit()
+
 	if req.TradeState == model.HomestayOrderTradeStateWaitUse {
 		// todo:message queue
 		data, err := json.Marshal(mq.OrderSuccessNotifyUserMessage{
