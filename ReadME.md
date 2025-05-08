@@ -1,4 +1,8 @@
+todo:
++ error handling: fmt.Errof("%w")  pkg/errors库 包含堆栈信息
+
 ## Consul KV
+
 StayEaseGo/user_srv
 ```json
 {

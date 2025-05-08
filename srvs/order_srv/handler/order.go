@@ -1,19 +1,20 @@
 package handler
 
 import (
+	"StayEaseGo/pkg/snowflake"
+	"StayEaseGo/pkg/xerr"
 	homestay "StayEaseGo/srvs/homestay_srv/proto/gen"
 	mq "StayEaseGo/srvs/mq/model"
 	"StayEaseGo/srvs/order_srv/config"
 	"StayEaseGo/srvs/order_srv/global"
 	"StayEaseGo/srvs/order_srv/model"
 	pb "StayEaseGo/srvs/order_srv/proto/gen"
-	"StayEaseGo/srvs/pkg/snowflake"
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	jobtype "StayEaseGo/srvs/asynq/model"
 
@@ -42,14 +43,14 @@ func NewOrderSever(svcCtx *ServiceContext) *OrderSever {
 
 func (s *OrderSever) CreateHomestayOrder(ctx context.Context, req *pb.CreateHomestayOrderReq) (*pb.CreateHomestayOrderResp, error) {
 	if req.LiveStartTime >= req.LiveEndTime {
-		return nil, fmt.Errorf("start time cannot be greater than or equal to homestay end time:start time: %s, end time: %s", time.Unix(req.LiveStartTime, 0), time.Unix(req.LiveEndTime, 0))
+		return nil, errors.Wrapf(xerr.NewErrCode(xerr.SERVER_COMMON_ERROR), "start time cannot be greater than or equal to homestay end time:start time: %s, end time: %s", time.Unix(req.LiveStartTime, 0), time.Unix(req.LiveEndTime, 0))
 	}
 	rpcResp, err := s.svcCtx.HomestaySrvClient.HomestayDetail(ctx, &homestay.HomestayDetailReq{ID: req.HomestayId})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(xerr.NewErrCode(xerr.RPCCALL_ERROR), "rpc HomestayDetail fail , homestayId : %d , err : %v", req.HomestayId, err)
 	}
 	if rpcResp == nil {
-		return nil, fmt.Errorf("homestay not exists:ID: %d", req.HomestayId)
+		return nil, errors.Wrapf(xerr.NewErrCode(xerr.DB_ERROR), "homestay not exists:ID: %d", req.HomestayId)
 	}
 	start := time.Unix(req.LiveStartTime, 0)
 	end := time.Unix(req.LiveEndTime, 0)
@@ -58,7 +59,7 @@ func (s *OrderSever) CreateHomestayOrder(ctx context.Context, req *pb.CreateHome
 		req.HomestayId, start, end,
 	).First(&model.HomestayOrder{})
 	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("homestay is not available at this time:ID: %d", req.HomestayId)
+		return nil, errors.Wrapf(xerr.NewErrCode(xerr.SERVER_COMMON_ERROR), "homestay is not available at this time:ID: %d", req.HomestayId)
 	}
 	order := new(model.HomestayOrder)
 	order.Sn = snowflake.GenerateOrderID()
@@ -109,7 +110,7 @@ func (s *OrderSever) HomestayOrderDetail(ctx context.Context, req *pb.HomestayOr
 	var order model.HomestayOrder
 	result := s.svcCtx.SqlClient.Where(&model.HomestayOrder{Sn: req.Sn, DelState: model.NotDeleted}).First(&order)
 	if result.RowsAffected == 0 {
-		return nil, fmt.Errorf("user not exists")
+		return nil, errors.Wrapf(xerr.NewErrCode(xerr.DB_ERROR), "order not exists, sn: %s", req.Sn)
 	}
 	var respOrder pb.HomestayOrder
 	_ = copier.Copy(&respOrder, order)
@@ -144,18 +145,18 @@ func (s *OrderSever) UpdateHomestayOrderTradeState(ctx context.Context, req *pb.
 	result := tx.Where(&model.HomestayOrder{Sn: req.Sn, DelState: model.NotDeleted}).First(&order).Clauses(clause.Locking{Strength: "UPDATE"}).Select("*")
 	if result.RowsAffected == 0 {
 		tx.Rollback()
-		return nil, fmt.Errorf("order not exists")
+		return nil, errors.Wrapf(xerr.NewErrCode(xerr.DB_ERROR), "order not exists, sn: %s", req.Sn)
 	}
 
 	if !checkTradeState(order.TradeState, req.TradeState) {
 		tx.Rollback()
-		return nil, fmt.Errorf("update order trade state error")
+		return nil, errors.Wrapf(xerr.NewErrCode(xerr.SERVER_COMMON_ERROR), "update order trade state error")
 	}
 
 	res := tx.Model(&model.HomestayOrder{}).Where("sn = ?", req.Sn).Update("trade_state", req.TradeState)
 	if res.Error != nil {
 		tx.Rollback()
-		return nil, res.Error
+		return nil, errors.Wrap(xerr.NewErrCode(xerr.DB_ERROR), res.Error.Error())
 	}
 	tx.Commit()
 
@@ -170,7 +171,7 @@ func (s *OrderSever) UpdateHomestayOrderTradeState(ctx context.Context, req *pb.
 			LiveEndDate:     order.LiveEndDate.Unix(),
 		})
 		if err != nil {
-			return nil, fmt.Errorf("json marshal failed")
+			return nil, errors.Wrap(xerr.NewErrCode(xerr.SERVER_COMMON_ERROR), "json marshal failed")
 		}
 		err = global.KafkaProducer.WriteMessages(ctx,
 			kafka.Message{
@@ -178,7 +179,7 @@ func (s *OrderSever) UpdateHomestayOrderTradeState(ctx context.Context, req *pb.
 			})
 		if err != nil {
 			log.Error("send message failed: ", err)
-			return nil, fmt.Errorf("send message failed")
+			return nil, errors.Wrap(xerr.NewErrCode(xerr.SERVER_COMMON_ERROR), "send kafka message failed")
 		}
 	}
 	return &pb.UpdateHomestayOrderTradeStateResp{

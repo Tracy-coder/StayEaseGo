@@ -4,11 +4,14 @@ package order_web
 
 import (
 	"context"
-	"errors"
 	"strconv"
+
+	"github.com/pkg/errors"
 
 	"StayEaseGo/apis/order_web/biz/global"
 	order_web "StayEaseGo/apis/order_web/biz/model/order_web"
+	"StayEaseGo/pkg/result"
+	"StayEaseGo/pkg/xerr"
 	pb "StayEaseGo/srvs/order_srv/proto/gen"
 
 	"github.com/cloudwego/hertz/pkg/app"
@@ -23,12 +26,12 @@ func CreateHomestayOrder(ctx context.Context, c *app.RequestContext) {
 	var req order_web.CreateHomestayOrderReq
 	err = c.BindAndValidate(&req)
 	if err != nil {
-		c.JSON(consts.StatusBadRequest, err.Error())
+		result.HttpResult(c, consts.StatusBadRequest, nil, xerr.NewErrCodeMsg(xerr.REUQEST_PARAM_ERROR, err.Error()))
 		return
 	}
 	userID, err := getUserID(c)
 	if err != nil {
-		c.JSON(consts.StatusUnauthorized, err.Error())
+		result.HttpResult(c, consts.StatusUnauthorized, nil, err)
 		return
 	}
 
@@ -37,12 +40,12 @@ func CreateHomestayOrder(ctx context.Context, c *app.RequestContext) {
 	rpcReq.UserId = userID
 	rpcResp, err := global.OrderSrvClient.CreateHomestayOrder(ctx, &rpcReq)
 	if err != nil {
-		c.JSON(consts.StatusInternalServerError, err.Error())
+		result.HttpResult(c, consts.StatusInternalServerError, nil, errors.Wrap(err, "create homestay order failed"))
 	}
-
-	c.JSON(consts.StatusOK, &order_web.CreateHomestayOrderResp{
+	resp := &order_web.CreateHomestayOrderResp{
 		Sn: rpcResp.Sn,
-	})
+	}
+	result.HttpResult(c, consts.StatusOK, resp, nil)
 }
 
 // HomestayOrderDetail .
@@ -52,30 +55,27 @@ func HomestayOrderDetail(ctx context.Context, c *app.RequestContext) {
 	var req order_web.HomestayOrderDetailReq
 	err = c.BindAndValidate(&req)
 	if err != nil {
-		c.JSON(consts.StatusBadRequest, err.Error())
+		result.HttpResult(c, consts.StatusUnauthorized, nil, err)
 		return
 	}
 	userID, err := getUserID(c)
 	if err != nil {
-		c.JSON(consts.StatusUnauthorized, err.Error())
+		result.HttpResult(c, consts.StatusUnauthorized, nil, err)
 		return
 	}
 	rpcResp, err := global.OrderSrvClient.HomestayOrderDetail(ctx, &pb.HomestayOrderDetailReq{})
 	if err != nil {
-		c.JSON(consts.StatusInternalServerError, err.Error())
+		result.HttpResult(c, consts.StatusInternalServerError, nil, errors.Wrap(err, "get homestay detail failed"))
 		return
 	}
 
-	if rpcResp != nil && rpcResp.HomestayOrder.UserId == userID {
-		resp := new(order_web.HomestayOrder)
-		copier.Copy(&resp, &rpcResp.HomestayOrder)
-		c.JSON(consts.StatusOK, &order_web.HomestayOrderDetailResp{
-			HomestayOrder: resp,
-		},
-		)
+	if rpcResp == nil || rpcResp.HomestayOrder.UserId != userID {
+		result.HttpResult(c, consts.StatusInternalServerError, nil, xerr.NewErrCodeMsg(xerr.DB_ERROR, "can not find order or order not belong to you"))
 		return
 	}
-	c.JSON(consts.StatusInternalServerError, "can not find order or order not belong to you")
+	resp := new(order_web.HomestayOrder)
+	copier.Copy(&resp, &rpcResp.HomestayOrder)
+	result.HttpResult(c, consts.StatusOK, resp, nil)
 }
 
 // UserHomestayOrderList .
@@ -85,12 +85,12 @@ func UserHomestayOrderList(ctx context.Context, c *app.RequestContext) {
 	var req order_web.UserHomestayOrderListReq
 	err = c.BindAndValidate(&req)
 	if err != nil {
-		c.JSON(consts.StatusBadRequest, err.Error())
+		result.HttpResult(c, consts.StatusBadRequest, nil, xerr.NewErrCodeMsg(xerr.REUQEST_PARAM_ERROR, err.Error()))
 		return
 	}
 	userID, err := getUserID(c)
 	if err != nil {
-		c.JSON(consts.StatusUnauthorized, err.Error())
+		result.HttpResult(c, consts.StatusUnauthorized, nil, err)
 		return
 	}
 	rpcResp, err := global.OrderSrvClient.UserHomestayOrderList(ctx, &pb.UserHomestayOrderListReq{
@@ -100,7 +100,7 @@ func UserHomestayOrderList(ctx context.Context, c *app.RequestContext) {
 		UserId:      userID,
 	})
 	if err != nil {
-		c.JSON(consts.StatusInternalServerError, err.Error())
+		result.HttpResult(c, consts.StatusInternalServerError, nil, errors.Wrap(err, "get order list failed"))
 		return
 	}
 	resp := make([]*order_web.HomestayOrder, len(rpcResp.List))
@@ -108,19 +108,17 @@ func UserHomestayOrderList(ctx context.Context, c *app.RequestContext) {
 		copier.Copy(&resp[i], &rpcResp.List[i])
 	}
 
-	c.JSON(consts.StatusOK, &order_web.UserHomestayOrderListResp{
-		List: resp,
-	})
+	result.HttpResult(c, consts.StatusOK, resp, nil)
 }
 
 func getUserID(c *app.RequestContext) (int64, error) {
 	v, exist := c.Get("userID")
 	if !exist || v == nil {
-		return 0, errors.New("Unauthorized")
+		return 0, xerr.NewErrCode(xerr.TOKEN_PARSE_ERROR)
 	}
 	i, err := strconv.ParseInt(v.(string), 10, 64)
 	if err != nil {
-		return 0, err
+		return 0, xerr.NewErrCode(xerr.TOKEN_PARSE_ERROR)
 	}
 	return i, nil
 }

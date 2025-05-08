@@ -21,6 +21,7 @@ type OtelConfig struct {
 
 type HomestaySrvConfig struct {
 	Name string `mapstructure:"name" json:"name"`
+	Addr string
 }
 
 type KafkaConfig struct {

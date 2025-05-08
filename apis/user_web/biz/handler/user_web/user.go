@@ -4,10 +4,10 @@ package user_web
 
 import (
 	"context"
-	"errors"
-	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"StayEaseGo/apis/user_web/biz/global"
 	middleware "StayEaseGo/apis/user_web/biz/handler/middleware"
@@ -15,8 +15,10 @@ import (
 	user_web "StayEaseGo/apis/user_web/biz/model/user_web"
 	pb "StayEaseGo/srvs/user_srv/proto/gen"
 
+	"StayEaseGo/pkg/result"
+	"StayEaseGo/pkg/xerr"
+
 	"github.com/cloudwego/hertz/pkg/app"
-	"github.com/cloudwego/hertz/pkg/common/utils"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jinzhu/copier"
@@ -34,7 +36,7 @@ func Register(ctx context.Context, c *app.RequestContext) {
 	err = c.BindAndValidate(&req)
 
 	if err != nil {
-		c.JSON(consts.StatusBadRequest, err.Error())
+		result.HttpResult(c, consts.StatusBadRequest, nil, xerr.NewErrCodeMsg(xerr.REUQEST_PARAM_ERROR, err.Error()))
 		return
 	}
 	rpcResp, err := global.UserSrvClient.Register(ctx, &pb.RegisterReq{
@@ -45,7 +47,7 @@ func Register(ctx context.Context, c *app.RequestContext) {
 		Nickname: req.Nickname,
 	})
 	if err != nil {
-		c.JSON(consts.StatusInternalServerError, err.Error())
+		result.HttpResult(c, consts.StatusInternalServerError, nil, errors.Wrapf(err, "register failed, mobile: %s", req.Mobile))
 		return
 	}
 
@@ -62,15 +64,13 @@ func Register(ctx context.Context, c *app.RequestContext) {
 	}
 	token, err := j.CreateToken(claims)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.H{
-			"msg": "Generate token failed",
-		})
+		result.HttpResult(c, consts.StatusInternalServerError, nil, xerr.NewErrCode(xerr.TOKEN_GENERATE_ERROR))
 		return
 	}
 	resp.AccessToken = token
 	resp.AccessExpire = expire.Format(time.RFC3339)
 	resp.RefreshAfter = refresh.Format(time.RFC3339)
-	c.JSON(http.StatusOK, resp)
+	result.HttpResult(c, consts.StatusOK, resp, nil)
 }
 
 // Login .
@@ -80,7 +80,7 @@ func Login(ctx context.Context, c *app.RequestContext) {
 	var req user_web.UserLoginReq
 	err = c.BindAndValidate(&req)
 	if err != nil {
-		c.JSON(consts.StatusBadRequest, err.Error())
+		result.HttpResult(c, consts.StatusBadRequest, nil, xerr.NewErrCodeMsg(xerr.REUQEST_PARAM_ERROR, err.Error()))
 		return
 	}
 
@@ -90,9 +90,8 @@ func Login(ctx context.Context, c *app.RequestContext) {
 		Password: req.Password,
 		AuthType: global.UserAuthTypeSystem,
 	})
-	c.JSON(consts.StatusOK, resp)
 	if err != nil {
-		c.JSON(consts.StatusInternalServerError, err.Error())
+		result.HttpResult(c, consts.StatusInternalServerError, nil, errors.Wrapf(err, "login failed, mobile: %s", req.Mobile))
 		return
 	}
 
@@ -109,15 +108,13 @@ func Login(ctx context.Context, c *app.RequestContext) {
 	}
 	token, err := j.CreateToken(claims)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.H{
-			"msg": "Generate token failed",
-		})
+		result.HttpResult(c, consts.StatusInternalServerError, nil, xerr.NewErrCode(xerr.TOKEN_GENERATE_ERROR))
 		return
 	}
 	resp.AccessToken = token
 	resp.AccessExpire = expire.Format(time.RFC3339)
 	resp.RefreshAfter = refresh.Format(time.RFC3339)
-	c.JSON(http.StatusOK, resp)
+	result.HttpResult(c, consts.StatusOK, resp, nil)
 }
 
 // WXMiniAuth .
@@ -127,7 +124,7 @@ func WXMiniAuth(ctx context.Context, c *app.RequestContext) {
 	var req user_web.WXMiniAuthReq
 	err = c.BindAndValidate(&req)
 	if err != nil {
-		c.String(consts.StatusBadRequest, err.Error())
+		result.HttpResult(c, consts.StatusBadRequest, nil, xerr.NewErrCodeMsg(xerr.REUQEST_PARAM_ERROR, err.Error()))
 		return
 	}
 
@@ -140,13 +137,13 @@ func WXMiniAuth(ctx context.Context, c *app.RequestContext) {
 	})
 	authResult, err := miniprogram.GetAuth().Code2Session(req.Code)
 	if err != nil || authResult.ErrCode != 0 || authResult.OpenID == "" {
-		c.JSON(consts.StatusInternalServerError, err.Error())
+		result.HttpResult(c, consts.StatusInternalServerError, nil, xerr.NewErrMsg("get wx auth failed, code: "+req.Code))
 		return
 	}
 	//2、Parsing WeChat-Mini return data
 	userData, err := miniprogram.GetEncryptor().Decrypt(authResult.SessionKey, req.EncryptedData, req.Iv)
 	if err != nil {
-		c.JSON(consts.StatusInternalServerError, err.Error())
+		result.HttpResult(c, consts.StatusInternalServerError, nil, xerr.NewErrMsg("parse wx auth failed, code: "+req.Code))
 		return
 	}
 
@@ -157,7 +154,7 @@ func WXMiniAuth(ctx context.Context, c *app.RequestContext) {
 		AuthKey:  authResult.OpenID,
 	})
 	if err != nil {
-		c.JSON(consts.StatusInternalServerError, err.Error())
+		result.HttpResult(c, consts.StatusInternalServerError, nil, errors.Wrap(err, "wx auth failed"))
 		return
 	}
 	if rpcResp.UserAuth == nil || rpcResp.UserAuth.Id == 0 {
@@ -170,7 +167,7 @@ func WXMiniAuth(ctx context.Context, c *app.RequestContext) {
 			Nickname: nickName,
 		})
 		if err != nil {
-			c.JSON(consts.StatusInternalServerError, err.Error())
+			result.HttpResult(c, consts.StatusInternalServerError, nil, errors.Wrapf(err, "wx auth failed, openid: %s", req.Code))
 			return
 		}
 		j := middleware.NewJWT()
@@ -186,15 +183,13 @@ func WXMiniAuth(ctx context.Context, c *app.RequestContext) {
 		}
 		token, err := j.CreateToken(claims)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, utils.H{
-				"msg": "Generate token failed",
-			})
+			result.HttpResult(c, consts.StatusInternalServerError, nil, xerr.NewErrCode(xerr.TOKEN_GENERATE_ERROR))
 			return
 		}
 		resp.AccessToken = token
 		resp.AccessExpire = expire.Format(time.RFC3339)
 		resp.RefreshAfter = refresh.Format(time.RFC3339)
-		c.JSON(http.StatusOK, resp)
+
 	} else {
 		userId = rpcResp.UserAuth.UserID
 		j := middleware.NewJWT()
@@ -210,17 +205,14 @@ func WXMiniAuth(ctx context.Context, c *app.RequestContext) {
 		}
 		token, err := j.CreateToken(claims)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, utils.H{
-				"msg": "Generate token failed",
-			})
+			result.HttpResult(c, consts.StatusInternalServerError, nil, xerr.NewErrCode(xerr.TOKEN_GENERATE_ERROR))
 			return
 		}
 		resp.AccessToken = token
 		resp.AccessExpire = expire.Format(time.RFC3339)
 		resp.RefreshAfter = refresh.Format(time.RFC3339)
-		c.JSON(http.StatusOK, resp)
 	}
-	c.JSON(consts.StatusOK, resp)
+	result.HttpResult(c, consts.StatusOK, resp, nil)
 }
 
 // UserInfo .
@@ -230,37 +222,37 @@ func UserInfo(ctx context.Context, c *app.RequestContext) {
 	var req base.Empty
 	err = c.BindAndValidate(&req)
 	if err != nil {
-		c.JSON(consts.StatusBadRequest, err.Error())
+		result.HttpResult(c, consts.StatusBadRequest, nil, xerr.NewErrCodeMsg(xerr.REUQEST_PARAM_ERROR, err.Error()))
 		return
 	}
 
 	resp := new(user_web.UserInfoResp)
 	userID, err := getUserID(c)
 	if err != nil {
-		c.JSON(consts.StatusUnauthorized, err.Error())
+		result.HttpResult(c, consts.StatusUnauthorized, nil, err)
 		return
 	}
 	rpcResp, err := global.UserSrvClient.GetUserInfo(ctx, &pb.GetUserInfoReq{
 		Id: userID,
 	})
 	if err != nil {
-		c.JSON(consts.StatusInternalServerError, err.Error())
+		result.HttpResult(c, consts.StatusInternalServerError, nil, errors.Wrap(err, "get user info failed"))
 		return
 	}
 	userinfo := new(user_web.User)
 	_ = copier.Copy(userinfo, rpcResp.User)
 	resp.User = userinfo
-	c.JSON(consts.StatusOK, resp)
+	result.HttpResult(c, consts.StatusOK, resp, nil)
 }
 
 func getUserID(c *app.RequestContext) (int64, error) {
 	v, exist := c.Get("userID")
 	if !exist || v == nil {
-		return 0, errors.New("Unauthorized")
+		return 0, xerr.NewErrCode(xerr.TOKEN_PARSE_ERROR)
 	}
 	i, err := strconv.ParseInt(v.(string), 10, 64)
 	if err != nil {
-		return 0, err
+		return 0, xerr.NewErrCode(xerr.TOKEN_PARSE_ERROR)
 	}
 	return i, nil
 }

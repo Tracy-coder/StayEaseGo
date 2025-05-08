@@ -1,15 +1,16 @@
 package handler
 
 import (
+	"StayEaseGo/pkg/xerr"
 	"StayEaseGo/srvs/homestay_srv/config"
 	"StayEaseGo/srvs/homestay_srv/global"
 	"StayEaseGo/srvs/homestay_srv/model"
 	pb "StayEaseGo/srvs/homestay_srv/proto/gen"
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/jinzhu/copier"
@@ -34,7 +35,7 @@ func (s *HomestaySever) HomestayDetail(ctx context.Context, req *pb.HomestayDeta
 	var homestay model.Homestay
 	result := s.svcCtx.SqlClient.Where("id = ?", req.ID).First(&homestay)
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, errors.Wrapf(xerr.NewErrCode(xerr.DB_ERROR), "get homestay detail failed, id: %d", req.ID)
 	}
 	var homestayDetail pb.Homestay
 
@@ -120,7 +121,7 @@ func (s *HomestaySever) HomestayList(ctx context.Context, req *pb.HomestayListRe
 
 	queryJSON, err := json.Marshal(query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal query: %w", err)
+		return nil, errors.Wrapf(xerr.NewErrCode(xerr.ES_ERROR), "failed to marshal query: %s", err)
 	}
 
 	res, err := global.GlobalESClient.Search(
@@ -128,29 +129,29 @@ func (s *HomestaySever) HomestayList(ctx context.Context, req *pb.HomestayListRe
 		global.GlobalESClient.Search.WithBody(strings.NewReader(string(queryJSON))),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to search: %w", err)
+		return nil, errors.Wrapf(xerr.NewErrCode(xerr.ES_ERROR), "failed to search: %s", err)
 	}
 	defer res.Body.Close()
 
 	if res.IsError() {
 		var e map[string]interface{}
 		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-			return nil, fmt.Errorf("failed to decode error response: %w", err)
+			return nil, errors.Wrap(xerr.NewErrCode(xerr.SERVER_COMMON_ERROR), "failed to decode error response")
 		}
 		log.Errorf("Search request failed: %s", e["error"])
-		return nil, fmt.Errorf("search request failed with status %s", res.Status())
+		return nil, errors.Wrapf(xerr.NewErrCode(xerr.ES_ERROR), "search request failed with status %s", res.Status())
 	}
 
 	var result map[string]interface{}
 	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode search response: %w", err)
+		return nil, errors.Wrap(xerr.NewErrCode(xerr.SERVER_COMMON_ERROR), "failed to decode search response")
 	}
 
 	hits := result["hits"].(map[string]interface{})["hits"].([]interface{})
 	homestayList := make([]*pb.Homestay, 0, len(hits))
 	for _, hit := range hits {
 		source := hit.(map[string]interface{})["_source"].(map[string]interface{})
-		log.Debug(source)
+		// log.Debug(source)
 		homestay := &pb.Homestay{
 			ID:                     int64(source["id"].(float64)),
 			Title:                  source["title"].(string),
@@ -179,7 +180,7 @@ func (s *HomestaySever) CreateHomestay(ctx context.Context, req *pb.CreateHomest
 	_ = copier.Copy(&homestay, req.Homestay)
 	result := s.svcCtx.SqlClient.Create(&homestay)
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, errors.Wrapf(xerr.NewErrCode(xerr.DB_ERROR), "failed to create homestay: %s", result.Error)
 	}
 	return &pb.Empty{}, nil
 }

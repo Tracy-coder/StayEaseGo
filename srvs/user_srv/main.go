@@ -9,11 +9,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	proto "StayEaseGo/srvs/user_srv/proto/gen"
-
-	"StayEaseGo/srvs/pkg/addr"
+	"StayEaseGo/pkg/addr"
+	"StayEaseGo/pkg/interceptor"
 	"StayEaseGo/srvs/user_srv/global"
 	"StayEaseGo/srvs/user_srv/handler"
+	proto "StayEaseGo/srvs/user_srv/proto/gen"
 
 	"github.com/hashicorp/consul/api"
 	log "github.com/sirupsen/logrus"
@@ -43,7 +43,8 @@ func main() {
 
 	log.Info("port: ", *Port)
 
-	server := grpc.NewServer()
+	// todo:logger interceptor
+	server := grpc.NewServer(grpc.UnaryInterceptor(interceptor.LoggerInterceptor))
 	ctx := &handler.ServiceContext{
 		Config:      global.GlobalServerConfig,
 		RedisClient: global.GlobalRedisClient,
@@ -57,7 +58,6 @@ func main() {
 	}
 	// Registration Service Health Check
 	grpc_health_v1.RegisterHealthServer(server, health.NewServer())
-
 	// service registry
 	cfg := api.DefaultConfig()
 	cfg.Address = fmt.Sprintf("%s:%d", global.GlobalConsulConfig.Host,

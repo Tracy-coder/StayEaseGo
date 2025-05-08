@@ -3,6 +3,7 @@ module StayEaseGo
 go 1.24.1
 
 require (
+	github.com/apache/rocketmq-client-go/v2 v2.1.2
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/bytedance/sonic v1.13.2
 	github.com/cloudwego/hertz v0.9.6
@@ -11,9 +12,11 @@ require (
 	github.com/elastic/go-elasticsearch/v8 v8.17.1
 	github.com/golang/protobuf v1.5.4
 	github.com/hashicorp/consul/api v1.32.0
+	github.com/hibiken/asynq v0.25.1
 	github.com/jinzhu/copier v0.4.0
 	github.com/redis/go-redis/v9 v9.7.3
 	github.com/satori/go.uuid v1.2.0
+	github.com/segmentio/kafka-go v0.4.47
 	github.com/silenceper/wechat/v2 v2.1.8
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.20.1
@@ -27,7 +30,7 @@ require (
 )
 
 require (
-	github.com/apache/rocketmq-client-go/v2 v2.1.2 // indirect
+	github.com/BurntSushi/toml v1.2.0 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20220106215444-fb4bf637b56d // indirect
 	github.com/bytedance/gopkg v0.1.0 // indirect
@@ -56,7 +59,6 @@ require (
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/serf v0.10.1 // indirect
-	github.com/hibiken/asynq v0.25.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -75,7 +77,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
-	github.com/segmentio/kafka-go v0.4.47 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.12.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect

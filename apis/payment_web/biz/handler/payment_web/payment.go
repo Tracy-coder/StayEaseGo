@@ -4,18 +4,20 @@ package payment_web
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"strconv"
 
 	"StayEaseGo/apis/payment_web/biz/global"
 	payment_web "StayEaseGo/apis/payment_web/biz/model/payment_web"
+	"StayEaseGo/pkg/result"
+	"StayEaseGo/pkg/xerr"
 	order_srv "StayEaseGo/srvs/order_srv/proto/gen"
 	payment_srv "StayEaseGo/srvs/payment_srv/proto/gen"
 	user_srv "StayEaseGo/srvs/user_srv/proto/gen"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/wechatpay-apiv3/wechatpay-go/core"
 	"github.com/wechatpay-apiv3/wechatpay-go/core/auth/verifiers"
@@ -32,19 +34,19 @@ func ThirdPaymentWxPay(ctx context.Context, c *app.RequestContext) {
 	var req payment_web.ThirdPaymentWxPayReq
 	err = c.BindAndValidate(&req)
 	if err != nil {
-		c.JSON(consts.StatusBadRequest, err.Error())
+		result.HttpResult(c, consts.StatusBadRequest, nil, xerr.NewErrCodeMsg(xerr.REUQEST_PARAM_ERROR, err.Error()))
 		return
 	}
 	userID, err := getUserID(c)
 	if err != nil {
-		c.JSON(consts.StatusUnauthorized, err.Error())
+		result.HttpResult(c, consts.StatusUnauthorized, nil, err)
 		return
 	}
 	orderDetailRpcResp, err := global.OrderSrvClient.HomestayOrderDetail(ctx, &order_srv.HomestayOrderDetailReq{
 		Sn: req.OrderSn,
 	})
 	if err != nil {
-		c.JSON(consts.StatusBadRequest, err.Error())
+		result.HttpResult(c, consts.StatusInternalServerError, nil, errors.Wrap(err, "get homestay detail failed"))
 		return
 	}
 
@@ -56,7 +58,7 @@ func ThirdPaymentWxPay(ctx context.Context, c *app.RequestContext) {
 		UserID: userID,
 	})
 	if err != nil || userAuthRpcResp.UserAuth == nil {
-		c.JSON(consts.StatusUnauthorized, "get user failed")
+		result.HttpResult(c, consts.StatusInternalServerError, nil, errors.Wrap(err, "get user failed"))
 		return
 	}
 	createPaymentRpcResp, err := global.PaymentSrvClient.CreatePayment(ctx, &payment_srv.CreatePaymentReq{
@@ -67,7 +69,7 @@ func ThirdPaymentWxPay(ctx context.Context, c *app.RequestContext) {
 		PayModel:    global.ThirdPaymentWxPay,
 	})
 	if err != nil || createPaymentRpcResp.Sn == "" {
-		c.JSON(consts.StatusBadRequest, err.Error())
+		result.HttpResult(c, consts.StatusInternalServerError, nil, errors.Wrap(err, "create payment failed"))
 		return
 	}
 	jsApiSvc := jsapi.JsapiApiService{Client: global.WXPayClient}
@@ -90,18 +92,18 @@ func ThirdPaymentWxPay(ctx context.Context, c *app.RequestContext) {
 		},
 	)
 	if err != nil {
-		c.JSON(consts.StatusBadRequest, err.Error())
+		result.HttpResult(c, consts.StatusInternalServerError, nil, errors.Wrap(err, "prepare payment failed"))
 		return
 	}
-
-	c.JSON(consts.StatusOK, &payment_web.ThirdPaymentWxPayResp{
+	resp := &payment_web.ThirdPaymentWxPayResp{
 		Appid:     global.GlobalServerConfig.WxMiniConf.AppId,
 		PaySign:   *prepayApiResp.PaySign,
 		SignType:  *prepayApiResp.SignType,
 		NonceStr:  *prepayApiResp.NonceStr,
 		Package:   *prepayApiResp.Package,
 		Timestamp: *prepayApiResp.TimeStamp,
-	})
+	}
+	result.HttpResult(c, consts.StatusOK, resp, nil)
 }
 
 // ThirdPaymentWxPayCallback .
@@ -125,11 +127,11 @@ func ThirdPaymentWxPayCallback(resp http.ResponseWriter, req *http.Request) {
 func getUserID(c *app.RequestContext) (int64, error) {
 	v, exist := c.Get("userID")
 	if !exist || v == nil {
-		return 0, errors.New("Unauthorized")
+		return 0, xerr.NewErrCode(xerr.TOKEN_PARSE_ERROR)
 	}
 	i, err := strconv.ParseInt(v.(string), 10, 64)
 	if err != nil {
-		return 0, err
+		return 0, xerr.NewErrCode(xerr.TOKEN_PARSE_ERROR)
 	}
 	return i, nil
 }

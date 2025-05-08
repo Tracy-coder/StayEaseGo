@@ -11,9 +11,10 @@ import (
 
 	proto "StayEaseGo/srvs/homestay_srv/proto/gen"
 
+	"StayEaseGo/pkg/addr"
+	"StayEaseGo/pkg/interceptor"
 	"StayEaseGo/srvs/homestay_srv/global"
 	"StayEaseGo/srvs/homestay_srv/handler"
-	"StayEaseGo/srvs/pkg/addr"
 
 	"github.com/hashicorp/consul/api"
 	log "github.com/sirupsen/logrus"
@@ -44,7 +45,7 @@ func main() {
 
 	log.Info("port: ", *Port)
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.UnaryInterceptor(interceptor.LoggerInterceptor))
 	ctx := &handler.ServiceContext{
 		Config:    global.GlobalServerConfig,
 		SqlClient: global.GlobalSqlClient,

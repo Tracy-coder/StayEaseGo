@@ -6,7 +6,7 @@ import (
 
 	"StayEaseGo/srvs/payment_srv/global"
 
-	"StayEaseGo/srvs/pkg/addr"
+	"StayEaseGo/pkg/addr"
 
 	"github.com/bytedance/sonic"
 	"github.com/hashicorp/consul/api"

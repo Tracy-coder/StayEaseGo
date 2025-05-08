@@ -1,18 +1,19 @@
 package handler
 
 import (
+	"StayEaseGo/pkg/snowflake"
+	"StayEaseGo/pkg/xerr"
 	mq "StayEaseGo/srvs/mq/model"
 	"StayEaseGo/srvs/payment_srv/config"
 	"StayEaseGo/srvs/payment_srv/global"
 	"StayEaseGo/srvs/payment_srv/model"
 	pb "StayEaseGo/srvs/payment_srv/proto/gen"
-	"StayEaseGo/srvs/pkg/snowflake"
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/jinzhu/copier"
+	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
 	"gorm.io/gorm"
 )
@@ -42,7 +43,7 @@ func (s *PaymentSever) CreatePayment(ctx context.Context, req *pb.CreatePaymentR
 	payment.OrderSn = req.OrderSn
 	res := s.svcCtx.SqlClient.Create(payment)
 	if res.RowsAffected == 0 {
-		return nil, fmt.Errorf("create payment failed")
+		return nil, errors.Wrap(xerr.NewErrCode(xerr.DB_ERROR), "create payment failed")
 	}
 	return &pb.CreatePaymentResp{Sn: payment.Sn}, nil
 }
@@ -51,7 +52,7 @@ func (s *PaymentSever) GetPaymentBySn(ctx context.Context, req *pb.GetPaymentByS
 	var payment model.Payment
 	result := s.svcCtx.SqlClient.Where(&model.Payment{Sn: req.Sn, DelState: model.NotDeleted}).First(&payment)
 	if result.RowsAffected == 0 {
-		return nil, fmt.Errorf("payment not exists")
+		return nil, errors.Wrap(xerr.NewErrCode(xerr.DB_ERROR), "payment not exists")
 	}
 	var respPayment pb.PaymentDetail
 	_ = copier.Copy(&respPayment, payment)
@@ -65,20 +66,20 @@ func (s *PaymentSever) UpdateTradeState(ctx context.Context, req *pb.UpdateTrade
 	var payment model.Payment
 	result := s.svcCtx.SqlClient.Where(&model.Payment{Sn: req.Sn, DelState: model.NotDeleted}).First(&payment)
 	if result.RowsAffected == 0 {
-		return nil, fmt.Errorf("payment not exists")
+		return nil, errors.Wrap(xerr.NewErrCode(xerr.DB_ERROR), "payment not exists")
 	}
 	if req.PayStatus == model.ThirdPaymentPayTradeStateFAIL || req.PayStatus == model.ThirdPaymentPayTradeStateSuccess {
 		if payment.PayStatus != model.ThirdPaymentPayTradeStateWait {
-			return nil, fmt.Errorf("payment status error")
+			return nil, errors.Wrap(xerr.NewErrCode(xerr.SERVER_COMMON_ERROR), "payment status error")
 		}
 	}
 	if req.PayStatus == model.ThirdPaymentPayTradeStateRefund {
 		if payment.PayStatus != model.ThirdPaymentPayTradeStateSuccess {
-			return nil, fmt.Errorf("payment status error")
+			return nil, errors.Wrap(xerr.NewErrCode(xerr.SERVER_COMMON_ERROR), "payment status error")
 		}
 	}
 	if req.PayStatus == model.ThirdPaymentPayTradeStateWait {
-		return nil, fmt.Errorf("payment status error")
+		return nil, errors.Wrap(xerr.NewErrCode(xerr.SERVER_COMMON_ERROR), "payment status error")
 	}
 	payment.PayStatus = req.PayStatus
 	payment.TradeState = req.TradeState
@@ -88,7 +89,7 @@ func (s *PaymentSever) UpdateTradeState(ctx context.Context, req *pb.UpdateTrade
 	payment.PayTime = time.Unix(req.PayTime, 0)
 	res := s.svcCtx.SqlClient.Save(&payment)
 	if res.RowsAffected == 0 {
-		return nil, fmt.Errorf("update payment failed")
+		return nil, errors.Wrap(xerr.NewErrCode(xerr.DB_ERROR), "update payment failed")
 	}
 	//todo: message queue : update order state
 	data, err := json.Marshal(mq.ThirdPaymentUpdatePayStatusNotifyMessage{
@@ -96,14 +97,14 @@ func (s *PaymentSever) UpdateTradeState(ctx context.Context, req *pb.UpdateTrade
 		PayStatus: req.PayStatus,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("json marshal failed")
+		return nil, errors.Wrap(xerr.NewErrCode(xerr.SERVER_COMMON_ERROR), "json marshal failed")
 	}
 	err = global.KafkaProducer.WriteMessages(ctx,
 		kafka.Message{
 			Value: data,
 		})
 	if err != nil {
-		return nil, fmt.Errorf("send message failed")
+		return nil, errors.Wrap(xerr.NewErrCode(xerr.SERVER_COMMON_ERROR), "send kafka message failed")
 	}
 	return &pb.UpdateTradeStateResp{}, nil
 }

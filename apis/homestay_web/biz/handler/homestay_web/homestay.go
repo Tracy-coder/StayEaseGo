@@ -4,18 +4,20 @@ package homestay_web
 
 import (
 	"context"
-	"errors"
 	"strconv"
 
 	"StayEaseGo/apis/homestay_web/biz/global"
 	base "StayEaseGo/apis/homestay_web/biz/model/base"
 	homestay_web "StayEaseGo/apis/homestay_web/biz/model/homestay_web"
+	"StayEaseGo/pkg/result"
+	"StayEaseGo/pkg/xerr"
 	pb "StayEaseGo/srvs/homestay_srv/proto/gen"
 	user_srv "StayEaseGo/srvs/user_srv/proto/gen"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"github.com/jinzhu/copier"
+	"github.com/pkg/errors"
 )
 
 // HomestayDetail .
@@ -25,19 +27,19 @@ func HomestayDetail(ctx context.Context, c *app.RequestContext) {
 	var req homestay_web.HomestayDetailReq
 	err = c.BindAndValidate(&req)
 	if err != nil {
-		c.JSON(consts.StatusBadRequest, err.Error())
+		result.HttpResult(c, consts.StatusBadRequest, nil, xerr.NewErrCodeMsg(xerr.REUQEST_PARAM_ERROR, err.Error()))
 		return
 	}
 	rpcResp, err := global.HomestaySrvClient.HomestayDetail(ctx, &pb.HomestayDetailReq{ID: req.ID})
 	if err != nil {
-		c.JSON(consts.StatusBadRequest, err.Error())
+		result.HttpResult(c, consts.StatusInternalServerError, nil, errors.Wrap(err, "get homestay detail failed"))
 		return
 	}
 	homestayDetail := new(homestay_web.Homestay)
 	_ = copier.Copy(homestayDetail, rpcResp.Homestay)
 	resp := new(homestay_web.HomestayDetailResp)
 	resp.Homestay = homestayDetail
-	c.JSON(consts.StatusOK, resp)
+	result.HttpResult(c, consts.StatusOK, resp, nil)
 }
 
 // HomestayList .
@@ -47,16 +49,16 @@ func HomestayList(ctx context.Context, c *app.RequestContext) {
 	var req homestay_web.HomestayListReq
 	err = c.BindAndValidate(&req)
 	if err != nil {
-		c.JSON(consts.StatusBadRequest, err.Error())
+		result.HttpResult(c, consts.StatusBadRequest, nil, xerr.NewErrCodeMsg(xerr.REUQEST_PARAM_ERROR, err.Error()))
 		return
 	}
 
 	resp := new(homestay_web.HomestayListResp)
 	rpcReq := new(pb.HomestayListReq)
-	_ = copier.Copy(rpcReq, req)
+	_ = copier.Copy(rpcReq, &req)
 	rpcResp, err := global.HomestaySrvClient.HomestayList(ctx, rpcReq)
 	if err != nil {
-		c.JSON(consts.StatusInternalServerError, err.Error())
+		result.HttpResult(c, consts.StatusInternalServerError, nil, errors.Wrap(err, "get homestay list failed"))
 	}
 	n := len(rpcResp.Homestays)
 	homestays := make([]*homestay_web.Homestay, n)
@@ -65,7 +67,7 @@ func HomestayList(ctx context.Context, c *app.RequestContext) {
 	}
 	resp.Homestays = homestays
 
-	c.JSON(consts.StatusOK, resp)
+	result.HttpResult(c, consts.StatusOK, resp, nil)
 }
 
 // CreateHomestay .
@@ -75,31 +77,31 @@ func CreateHomestay(ctx context.Context, c *app.RequestContext) {
 	var req homestay_web.CreateHomestayReq
 	err = c.BindAndValidate(&req)
 	if err != nil {
-		c.JSON(consts.StatusBadRequest, err.Error())
+		result.HttpResult(c, consts.StatusBadRequest, nil, xerr.NewErrCodeMsg(xerr.REUQEST_PARAM_ERROR, err.Error()))
 		return
 	}
 	userID, err := getUserID(c)
 	if err != nil {
-		c.JSON(consts.StatusUnauthorized, err.Error())
+		result.HttpResult(c, consts.StatusUnauthorized, nil, err)
 	}
 	rpcReq := new(pb.Homestay)
 	_ = copier.Copy(rpcReq, req.Homestay)
 	rpcReq.HomestayBusinessBossID = userID
 	_, err = global.HomestaySrvClient.CreateHomestay(ctx, &pb.CreateHomestayReq{Homestay: rpcReq})
 	if err != nil {
-		c.JSON(consts.StatusInternalServerError, err.Error())
+		result.HttpResult(c, consts.StatusInternalServerError, nil, errors.Wrap(err, "create homestay failed"))
 	}
-	c.JSON(consts.StatusOK, base.Empty{})
+	result.HttpResult(c, consts.StatusOK, &base.Empty{}, nil)
 }
 
 func getUserID(c *app.RequestContext) (int64, error) {
 	v, exist := c.Get("userID")
 	if !exist || v == nil {
-		return 0, errors.New("Unauthorized")
+		return 0, xerr.NewErrCode(xerr.TOKEN_PARSE_ERROR)
 	}
 	i, err := strconv.ParseInt(v.(string), 10, 64)
 	if err != nil {
-		return 0, err
+		return 0, xerr.NewErrCode(xerr.TOKEN_PARSE_ERROR)
 	}
 	return i, nil
 }
@@ -111,19 +113,19 @@ func HomestayBusinessBossDetail(ctx context.Context, c *app.RequestContext) {
 	var req homestay_web.HomestayBusinessBossDetailReq
 	err = c.BindAndValidate(&req)
 	if err != nil {
-		c.JSON(consts.StatusBadRequest, err.Error())
+		result.HttpResult(c, consts.StatusBadRequest, nil, xerr.NewErrCodeMsg(xerr.REUQEST_PARAM_ERROR, err.Error()))
 		return
 	}
 
 	resp := new(homestay_web.HomestayBusinessBossDetailResp)
 	homestayRpcResp, err := global.HomestaySrvClient.HomestayDetail(ctx, &pb.HomestayDetailReq{ID: req.ID})
 	if err != nil {
-		c.JSON(consts.StatusInternalServerError, err.Error())
+		result.HttpResult(c, consts.StatusInternalServerError, nil, errors.Wrap(err, "get homestay detail failed"))
 	}
 	userRpcResp, err := global.UserSrvClient.GetUserInfo(ctx, &user_srv.GetUserInfoReq{Id: homestayRpcResp.Homestay.HomestayBusinessBossID})
 	if err != nil {
-		c.JSON(consts.StatusInternalServerError, err.Error())
+		result.HttpResult(c, consts.StatusInternalServerError, nil, errors.Wrap(err, "get boss info failed"))
 	}
 	copier.Copy(resp, userRpcResp.User)
-	c.JSON(consts.StatusOK, resp)
+	result.HttpResult(c, consts.StatusOK, resp, nil)
 }

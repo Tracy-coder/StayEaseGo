@@ -4,11 +4,12 @@ import (
 	"StayEaseGo/srvs/user_srv/model"
 	pb "StayEaseGo/srvs/user_srv/proto/gen"
 	"context"
-	"fmt"
 
+	"github.com/pkg/errors"
+
+	"StayEaseGo/pkg/encrypt"
+	"StayEaseGo/pkg/xerr"
 	"StayEaseGo/srvs/user_srv/config"
-
-	"StayEaseGo/srvs/pkg/encrypt"
 
 	"github.com/jinzhu/copier"
 	redis "github.com/redis/go-redis/v9"
@@ -33,10 +34,10 @@ func (s *UserSever) Login(ctx context.Context, req *pb.LoginReq) (*pb.LoginResp,
 	var user model.User
 	result := s.svcCtx.SqlClient.Where(&model.User{Mobile: req.AuthKey, DelState: model.NotDeleted}).First(&user)
 	if result.RowsAffected == 0 {
-		return nil, fmt.Errorf("user not exists,mobile:%s", req.AuthKey)
+		return nil, errors.Wrapf(xerr.NewErrCode(xerr.DB_ERROR), "user not exists, mobile:%s", req.AuthKey)
 	}
 	if ok := encrypt.BcryptCheck(req.Password, user.Password); !ok {
-		return nil, fmt.Errorf("wrong password")
+		return nil, xerr.NewErrCodeMsg(xerr.SERVER_COMMON_ERROR, "password error")
 	}
 
 	return &pb.LoginResp{UserID: user.ID}, nil
@@ -45,10 +46,10 @@ func (s *UserSever) Login(ctx context.Context, req *pb.LoginReq) (*pb.LoginResp,
 func (s *UserSever) Register(ctx context.Context, req *pb.RegisterReq) (*pb.RegisterResp, error) {
 	res := s.svcCtx.SqlClient.Where(&model.User{Mobile: req.Mobile, DelState: model.NotDeleted}).First(&model.User{})
 	if res.Error != gorm.ErrRecordNotFound {
-		return nil, fmt.Errorf("mobile already exists:%s", req.Mobile)
+		return nil, errors.Wrapf(xerr.NewErrCode(xerr.DB_ERROR), "mobile already exists:%s", req.Mobile)
 	}
 	user := new(model.User)
-	s.svcCtx.SqlClient.Transaction(func(tx *gorm.DB) error {
+	err := s.svcCtx.SqlClient.Transaction(func(tx *gorm.DB) error {
 		encryptedPassword, err := encrypt.BcryptEncrypt(req.Password)
 		if err != nil {
 			return err
@@ -70,6 +71,9 @@ func (s *UserSever) Register(ctx context.Context, req *pb.RegisterReq) (*pb.Regi
 		}
 		return nil
 	})
+	if err != nil {
+		return nil, errors.Wrap(xerr.NewErrCode(xerr.DB_ERROR), err.Error())
+	}
 	return &pb.RegisterResp{UserID: user.ID}, nil
 }
 
@@ -77,7 +81,7 @@ func (s *UserSever) GetUserInfo(ctx context.Context, req *pb.GetUserInfoReq) (*p
 	var user model.User
 	result := s.svcCtx.SqlClient.Where(&model.User{ID: req.Id, DelState: model.NotDeleted}).First(&user)
 	if result.RowsAffected == 0 {
-		return nil, fmt.Errorf("user not exists")
+		return nil, errors.Wrapf(xerr.NewErrCode(xerr.DB_ERROR), "user not exists,user id: %d", req.Id)
 	}
 	var respUser pb.User
 	_ = copier.Copy(&respUser, user)
@@ -88,7 +92,7 @@ func (s *UserSever) GetUserAuthByUserId(ctx context.Context, req *pb.GetUserAuth
 	var userAuth model.UserAuth
 	result := s.svcCtx.SqlClient.Where(&model.UserAuth{UserId: req.UserID, AuthType: req.AuthType}).First(&userAuth)
 	if result.RowsAffected == 0 {
-		return nil, fmt.Errorf("user not exists")
+		return nil, errors.Wrapf(xerr.NewErrCode(xerr.DB_ERROR), "user not exists,user id: %d", req.UserID)
 	}
 	var respUserAuth pb.UserAuth
 	_ = copier.Copy(&respUserAuth, userAuth)
@@ -99,7 +103,7 @@ func (s *UserSever) GetUserAuthByAuthKey(ctx context.Context, req *pb.GetUserAut
 	var userAuth model.UserAuth
 	result := s.svcCtx.SqlClient.Where(&model.UserAuth{AuthKey: req.AuthKey, AuthType: req.AuthType}).First(&userAuth)
 	if result.RowsAffected == 0 {
-		return nil, fmt.Errorf("user not exists")
+		return nil, errors.Wrapf(xerr.NewErrCode(xerr.DB_ERROR), "user not exists,mobile: %s", req.AuthKey)
 	}
 	var respUserAuth pb.UserAuth
 	_ = copier.Copy(&respUserAuth, userAuth)

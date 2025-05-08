@@ -11,9 +11,10 @@ import (
 
 	proto "StayEaseGo/srvs/order_srv/proto/gen"
 
+	"StayEaseGo/pkg/addr"
+	"StayEaseGo/pkg/interceptor"
 	"StayEaseGo/srvs/order_srv/global"
 	"StayEaseGo/srvs/order_srv/handler"
-	"StayEaseGo/srvs/pkg/addr"
 
 	"github.com/hashicorp/consul/api"
 	log "github.com/sirupsen/logrus"
@@ -46,7 +47,7 @@ func main() {
 
 	log.Info("port: ", *Port)
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.UnaryInterceptor(interceptor.LoggerInterceptor))
 	ctx := &handler.ServiceContext{
 		Config:            global.GlobalServerConfig,
 		SqlClient:         global.GlobalSqlClient,
@@ -61,6 +62,10 @@ func main() {
 	// Registration Service Health Check
 	grpc_health_v1.RegisterHealthServer(server, health.NewServer())
 
+	// saga := dtmgrpc.NewSagaGrpc("localhost:36790", "123").
+	// 	Add(global.GlobalServerConfig.HomestaySrv.Addr+"/busi.Busi/TransOut", global.GlobalServerConfig.HomestaySrv.Addr+"/busi.Busi/TransOutRevert", req).
+	// 	Add(global.GlobalServerConfig.HomestaySrv.Addr+"/busi.Busi/TransIn", global.GlobalServerConfig.HomestaySrv.Addr+"/busi.Busi/TransInRevert", req)
+	// err = saga.Submit()
 	// service registry
 	cfg := api.DefaultConfig()
 	cfg.Address = fmt.Sprintf("%s:%d", global.GlobalConsulConfig.Host,

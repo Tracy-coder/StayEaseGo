@@ -30,6 +30,7 @@ func InitHomestaySrv() {
 	}
 	log.Debug(services)
 	addr := services[0].Service.Address + ":" + strconv.Itoa(services[0].Service.Port)
+	global.GlobalServerConfig.HomestaySrv.Addr = addr
 	grpcConn, _ := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	grpcClient := homestay.NewHomestayClient(grpcConn)
 	global.HomestaySrvClient = grpcClient

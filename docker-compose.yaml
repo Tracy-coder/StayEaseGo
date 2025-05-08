@@ -90,6 +90,12 @@ services:
       - kafka
     environment:
       DYNAMIC_CONFIG_ENABLED: "TRUE"
+  dtm:
+    container_name: dtm
+    image: yedf/dtm:latest
+    ports:
+      - 36790:36790
+      - 36789:36789
   # nginx:
   #   container_name: nginx
   #   image: nginx:1.27.5-alpine

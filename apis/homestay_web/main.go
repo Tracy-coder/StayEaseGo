@@ -5,7 +5,7 @@ package main
 import (
 	"StayEaseGo/apis/homestay_web/biz/global"
 	"StayEaseGo/apis/homestay_web/biz/initialize"
-	"StayEaseGo/srvs/pkg/addr"
+	"StayEaseGo/pkg/addr"
 	"flag"
 	"fmt"
 

@@ -5,7 +5,7 @@ package main
 import (
 	"StayEaseGo/apis/payment_web/biz/global"
 	"StayEaseGo/apis/payment_web/biz/initialize"
-	"StayEaseGo/srvs/pkg/addr"
+	"StayEaseGo/pkg/addr"
 	"flag"
 	"fmt"
 
