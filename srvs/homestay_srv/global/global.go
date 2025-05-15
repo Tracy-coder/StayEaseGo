@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-const HomestayServiceConfigPath = "./srvs/homestay_srv/config/config.yaml"
+const HomestayServiceConfigPath = "./srvs/homestay_srv/config/config_docker.yaml"
 
 var (
 	GlobalServerConfig config.ServerConfig

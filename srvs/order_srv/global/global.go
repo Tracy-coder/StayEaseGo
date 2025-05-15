@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-const OrderServiceConfigPath = "./srvs/order_srv/config/config.yaml"
+const OrderServiceConfigPath = "./srvs/order_srv/config/config_docker.yaml"
 
 var (
 	GlobalServerConfig config.ServerConfig

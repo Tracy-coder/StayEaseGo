@@ -1,19 +1,16 @@
 version: "3.7"
 services:
-  # consul:
-  #   image: consul:1.15
-  #   command: agent -server -bootstrap-expect=1 -client=0.0.0.0 -ui
-  #   volumes:
-  #     - /data/consul:/consul/data
-  #   extra_hosts:
-  #     - "host.docker.internal:host-gateway"
-  #     - "172.19.67.198:host-gateway"
-  #   ports:
-  #     - "8500:8500"
-  #     - "8300:8300"
-  #     - "8301:8301"
-  #     - "8302:8302"
-  #     - "8600:8600/udp"
+  consul:
+    image: consul:1.15
+    command: agent -server -bootstrap-expect=1 -client=0.0.0.0 -ui
+    volumes:
+      - /data/consul2:/consul/data
+    ports:
+      - "8500:8500"
+      - "8300:8300"
+      - "8301:8301"
+      - "8302:8302"
+      - "8600:8600/udp"
   redis:
     container_name: redis
     hostname: redis
@@ -47,8 +44,6 @@ services:
       - /home/yjy/data/elasticsearch/data:/usr/share/elasticsearch/data
       - /home/yjy/data/elasticsearch/plugins:/usr/share/elasticsearch/plugins
       - /home/yjy/data/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
-    networks:
-      - elastic
   kibana:
     image: docker.elastic.co/kibana/kibana:8.9.1
     container_name: kibana
@@ -56,8 +51,6 @@ services:
       - 5601:5601
     environment:
       - ELASTICSEARCH_HOSTS=http://es:9200
-    networks:
-      - elastic
     depends_on:
       - es
   kafka:
@@ -90,12 +83,49 @@ services:
       - kafka
     environment:
       DYNAMIC_CONFIG_ENABLED: "TRUE"
+  filebeat:
+    image: elastic/filebeat:9.0.0
+    container_name: filebeat
+    environment:
+      TZ: Asia/Shanghai
+    user: root
+    volumes:
+      - ./deploy/filebeat/conf/filebeat.yml:/usr/share/filebeat/filebeat.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers
+    depends_on:
+      - kafka
   dtm:
     container_name: dtm
     image: yedf/dtm:latest
     ports:
       - 36790:36790
       - 36789:36789
+  StayEaseGo:
+    image: modd-go1.24:latest
+    container_name: StayEaseGo
+    environment:
+      TZ: Asia/Shanghai
+      GOPROXY: https://goproxy.cn,direct
+    working_dir: /go/StayEaseGo
+    volumes:
+      - .:/go/StayEaseGo
+    privileged: true
+    ports:
+      - 40000:40000
+      - 40001:40001
+      - 40002:40002
+      - 40003:40003
+      - 8001:8001
+      - 8002:8002
+      - 8003:8003
+      - 8004:8004
+    restart: always
+    depends_on:
+      - consul
+      - es
+      - mysql
+      - redis
+      
   # nginx:
   #   container_name: nginx
   #   image: nginx:1.27.5-alpine

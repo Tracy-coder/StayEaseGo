@@ -6,7 +6,7 @@ import (
 	user_srv "StayEaseGo/srvs/user_srv/proto/gen"
 )
 
-const HomestayServiceConfigPath = "./apis/homestay_web/biz/config/config.yaml"
+const HomestayServiceConfigPath = "./apis/homestay_web/biz/config/config_docker.yaml"
 
 var (
 	GlobalServerConfig config.ServerConfig

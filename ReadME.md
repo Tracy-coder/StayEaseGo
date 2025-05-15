@@ -1,6 +1,6 @@
 todo:
 + error handling: fmt.Errof("%w")  pkg/errors库 包含堆栈信息
-
++ wsl的container log在: \\wsl$\docker-desktop-data\data\docker\containers，filebeat监控不到
 ## Consul KV
 
 StayEaseGo/user_srv
@@ -140,7 +140,7 @@ StayEaseGo/payment_srv
 StayEaseGo/payment_web
 ```json
 {
-  "name":"order_web",
+  "name":"payment_web",
   "otel":{
     "endpoint":"localhost:4317"
   },

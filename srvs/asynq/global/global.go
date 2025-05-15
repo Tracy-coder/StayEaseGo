@@ -7,7 +7,7 @@ import (
 	"github.com/hibiken/asynq"
 )
 
-const AsynqServiceConfigPath = "./srvs/asynq/config/config.yaml"
+const AsynqServiceConfigPath = "./srvs/asynq/config/config_docker.yaml"
 
 var (
 	AsynqServer *asynq.Server

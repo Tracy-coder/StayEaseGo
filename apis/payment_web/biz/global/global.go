@@ -9,7 +9,7 @@ import (
 	"github.com/wechatpay-apiv3/wechatpay-go/core"
 )
 
-const PaymentServiceConfigPath = "./apis/payment_web/biz/config/config.yaml"
+const PaymentServiceConfigPath = "./apis/payment_web/biz/config/config_docker.yaml"
 
 var (
 	GlobalServerConfig config.ServerConfig

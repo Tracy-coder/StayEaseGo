@@ -5,7 +5,7 @@ import (
 	pb "StayEaseGo/srvs/user_srv/proto/gen"
 )
 
-const UserServiceConfigPath = "./apis/user_web/biz/config/config.yaml"
+const UserServiceConfigPath = "./apis/user_web/biz/config/config_docker.yaml"
 
 var UserAuthTypeSystem string = "system"
 var UserAuthTypeSmallWX string = "wxMini"

@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-const UserServiceConfigPath = "./srvs/user_srv/config/config.yaml"
+const UserServiceConfigPath = "./srvs/user_srv/config/config_docker.yaml"
 
 var (
 	GlobalServerConfig config.ServerConfig

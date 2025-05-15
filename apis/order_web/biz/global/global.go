@@ -5,7 +5,7 @@ import (
 	pb "StayEaseGo/srvs/order_srv/proto/gen"
 )
 
-const OrderServiceConfigPath = "./apis/order_web/biz/config/config.yaml"
+const OrderServiceConfigPath = "./apis/order_web/biz/config/config_docker.yaml"
 
 var (
 	GlobalServerConfig config.ServerConfig

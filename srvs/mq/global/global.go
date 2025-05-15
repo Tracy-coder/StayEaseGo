@@ -6,7 +6,7 @@ import (
 	user_srv "StayEaseGo/srvs/user_srv/proto/gen"
 )
 
-const MQServiceConfigPath = "./srvs/mq/config/config.yaml"
+const MQServiceConfigPath = "./srvs/mq/config/config_docker.yaml"
 
 var (
 	GlobalServerConfig config.ServerConfig

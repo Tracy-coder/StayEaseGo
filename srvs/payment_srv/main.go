@@ -30,7 +30,6 @@ import (
 func main() {
 	IP := flag.String("ip", "0.0.0.0", "address")
 	Port := flag.Int("port", 0, "post")
-
 	// initialization
 	initialize.InitLogger()
 	initialize.InitConfig()

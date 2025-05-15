@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-const PaymentServiceConfigPath = "./srvs/payment_srv/config/config.yaml"
+const PaymentServiceConfigPath = "./srvs/payment_srv/config/config_docker.yaml"
 
 var (
 	GlobalServerConfig config.ServerConfig

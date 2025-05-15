@@ -14,6 +14,7 @@ import (
 func InitES() {
 	var err error
 	addr := fmt.Sprintf("http://%s:%d", global.GlobalServerConfig.EsInfo.Host, global.GlobalServerConfig.EsInfo.Port)
+	log.Debug("addr")
 	global.GlobalESClient, err = elasticsearch.NewClient(elasticsearch.Config{
 		Addresses: []string{addr},
 		Username:  "elastic",
