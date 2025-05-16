@@ -1,6 +1,13 @@
 todo:
-+ error handling: fmt.Errof("%w")  pkg/errors库 包含堆栈信息
-+ wsl的container log在: \\wsl$\docker-desktop-data\data\docker\containers，filebeat监控不到
+1. error handling: fmt.Errof("%w")  pkg/errors库 包含堆栈信息
+2. wsl的container log在: \\wsl$\docker-desktop-data\data\docker\containers，filebeat监控不到
+
+解决方法: 
+
+  ![image](./images/1.png)
+
+  在windows资源管理器中选择映射到网络驱动器，比如映射到了Z:，然后在wsl中执行 `sudo mount -t drvfs Z: /mnt/docker`即可,对应的container log即为 `/mnt/docker/data/docker/containers`
+
 ## Consul KV
 
 StayEaseGo/user_srv

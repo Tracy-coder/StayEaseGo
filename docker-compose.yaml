@@ -91,7 +91,7 @@ services:
     user: root
     volumes:
       - ./deploy/filebeat/conf/filebeat.yml:/usr/share/filebeat/filebeat.yml
-      - /var/lib/docker/containers:/var/lib/docker/containers
+      - /mnt/docker/data/docker/containers:/mnt/docker/data/docker/containers
     depends_on:
       - kafka
   dtm:
