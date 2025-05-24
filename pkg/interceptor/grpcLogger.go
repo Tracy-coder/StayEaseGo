@@ -11,7 +11,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func init() {
+	log.SetFormatter(&log.JSONFormatter{})
+}
+
 func LoggerInterceptor(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
+	log.SetFormatter(&log.JSONFormatter{})
 	resp, err = handler(ctx, req)
 	if err != nil {
 		causeErr := errors.Cause(err)

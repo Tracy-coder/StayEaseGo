@@ -11,6 +11,7 @@ import (
 
 	"StayEaseGo/pkg/addr"
 	"StayEaseGo/pkg/interceptor"
+	"StayEaseGo/pkg/tracing"
 	"StayEaseGo/srvs/user_srv/global"
 	"StayEaseGo/srvs/user_srv/handler"
 	proto "StayEaseGo/srvs/user_srv/proto/gen"
@@ -18,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/grpc-ecosystem/go-grpc-middleware"
 	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -35,6 +37,8 @@ func main() {
 	initialize.InitConfig()
 	initialize.InitSql()
 	initialize.InitRedis()
+	tracer, closer := tracing.Init("user_srv")
+	defer closer.Close()
 	flag.Parse()
 	log.Info("ip: ", *IP)
 	if *Port == 0 {
@@ -44,7 +48,7 @@ func main() {
 	log.Info("port: ", *Port)
 
 	// todo:logger interceptor
-	server := grpc.NewServer(grpc.UnaryInterceptor(interceptor.LoggerInterceptor))
+	server := grpc.NewServer(grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(tracing.JaegerServerInterceptor(tracer), interceptor.LoggerInterceptor)))
 	ctx := &handler.ServiceContext{
 		Config:      global.GlobalServerConfig,
 		RedisClient: global.GlobalRedisClient,

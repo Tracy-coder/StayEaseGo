@@ -11,6 +11,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func init() {
+	log.SetFormatter(&log.JSONFormatter{})
+}
+
 func HttpResult(c *app.RequestContext, code int, obj interface{}, err error) {
 	if err == nil {
 		c.JSON(code, obj)

@@ -1,12 +1,5 @@
-todo:
-1. error handling: fmt.Errof("%w")  pkg/errors库 包含堆栈信息
-2. wsl的container log在: \\wsl$\docker-desktop-data\data\docker\containers，filebeat监控不到
-
-解决方法: 
-
-  ![image](./images/1.png)
-
-  在windows资源管理器中选择映射到网络驱动器，比如映射到了Z:，然后在wsl中执行 `sudo mount -t drvfs Z: /mnt/docker`即可,对应的container log即为 `/mnt/docker/data/docker/containers`
+## Dependencies
+![image](./images/depend.png)
 
 ## Consul KV
 
@@ -15,7 +8,7 @@ StayEaseGo/user_srv
 {
   "name": "user_srv",
   "mysql": {
-    "host": "127.0.0.1",
+    "host": "mysql",
     "port": 3306,
     "user": "root",
     "password": "root",
@@ -23,7 +16,7 @@ StayEaseGo/user_srv
     "salt": "123"
   },
   "redis": {
-    "host": "127.0.0.1",
+    "host": "redis",
     "port": 6379
   }
 }
@@ -34,9 +27,9 @@ StayEaseGo/user_web
 ```json
 {
   "name":"user_web",
-  "otel":{
-    "endpoint":"localhost:4317"
-  },
+  // "otel":{
+  //   "endpoint":"localhost:4317"
+  // },
   "user_srv":{
     "name":"user_srv"
   },
@@ -50,11 +43,11 @@ StayEaseGo/homestay_srv
 ```json
 {
   "name":"homestay_srv",
-  "otel":{
-    "endpoint":"localhost:4317"
-  },
+  // "otel":{
+  //   "endpoint":"localhost:4317"
+  // },
   "mysql": {
-    "host": "127.0.0.1",
+    "host": "mysql",
     "port": 3306,
     "user": "root",
     "password": "root",
@@ -62,8 +55,8 @@ StayEaseGo/homestay_srv
     "salt": "123"
   },
   "es":{
-    "host":"127.0.0.1",
-    "port":9201
+    "host":"es",
+    "port":9200
   }
 }
 ```
@@ -72,9 +65,9 @@ StayEaseGo/homestay_web
 ```json
 {
   "name":"homestay_web",
-  "otel":{
-    "endpoint":"localhost:4317"
-  },
+  // "otel":{
+  //   "endpoint":"localhost:4317"
+  // },
   "user_srv":{
     "name":"user_srv"
   },
@@ -88,11 +81,11 @@ StayEaseGo/order_srv
 ```json
 {
   "name":"order_srv",
-  "otel":{
-    "endpoint":"localhost:4317"
-  },
+  // "otel":{
+  //   "endpoint":"localhost:4317"
+  // },
   "mysql": {
-    "host": "127.0.0.1",
+    "host": "mysql",
     "port": 3306,
     "user": "root",
     "password": "root",
@@ -102,10 +95,10 @@ StayEaseGo/order_srv
     "name":"homestay_srv"
   },
   "kafka":{
-    "brokers":["localhost:9092"]
+    "brokers":["kafka:9092"]
   },
   "redis": {
-    "host": "127.0.0.1",
+    "host": "redis",
     "port": 6379
   }
 }
@@ -115,9 +108,9 @@ StayEaseGo/order_web
 ```json
 {
   "name":"order_web",
-  "otel":{
-    "endpoint":"localhost:4317"
-  },
+  // "otel":{
+  //   "endpoint":"localhost:4317"
+  // },
   "order_srv":{
     "name":"order_srv"
   }
@@ -128,18 +121,18 @@ StayEaseGo/payment_srv
 ```json
 {
   "name":"payment_srv",
-  "otel":{
-    "endpoint":"localhost:4317"
-  },
+  // "otel":{
+  //   "endpoint":"localhost:4317"
+  // },
   "mysql": {
-    "host": "127.0.0.1",
+    "host": "mysql",
     "port": 3306,
     "user": "root",
     "password": "root",
     "db": "StayEaseGo"
   },
   "kafka":{
-    "brokers":["localhost:9092"]
+    "brokers":["kafka:9092"]
   }
 }
 ```
@@ -148,9 +141,9 @@ StayEaseGo/payment_web
 ```json
 {
   "name":"payment_web",
-  "otel":{
-    "endpoint":"localhost:4317"
-  },
+  // "otel":{
+  //   "endpoint":"localhost:4317"
+  // },
 
   "jwt":{
     "key":"test"
@@ -164,7 +157,7 @@ StayEaseGo/payment_web
     "SerialNon":"013467007045764",
     "APIv3Key":"013467007045764",
     "PrivateKey":"",
-    "NotifyUrl":"http://localhost:8004/api/v1/pay/wxpay/callback"
+    "NotifyUrl":"http://localhost/api/v1/pay/wxpay/callback"
   },
   "order_srv":{
     "name":"order_srv"
@@ -185,7 +178,7 @@ StayEaseGo/mq
 {
   "name":"mq",
   "kafka":{
-    "brokers":["localhost:9092"]
+    "brokers":["kafka:9092"]
   },
     "order_srv":{
     "name":"order_srv"
@@ -204,8 +197,19 @@ StayEaseGo/asynq
     "name":"order_srv"
   },
   "redis": {
-    "host": "127.0.0.1",
+    "host": "redis",
     "port": 6379
   }
 }
 ```
+
+
+todo:
+1. error handling: fmt.Errof("%w")  pkg/errors库 包含堆栈信息
+2. wsl的container log在: \\wsl$\docker-desktop-data\data\docker\containers，filebeat监控不到
+
+解决方法: 
+
+  ![image](./images/1.png)
+
+  在windows资源管理器中选择映射到网络驱动器，比如映射到了Z:，然后在wsl中执行 `sudo mount -t drvfs Z: /mnt/docker`即可,对应的container log即为 `/mnt/docker/data/docker/containers`

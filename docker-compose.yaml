@@ -5,6 +5,8 @@ services:
     command: agent -server -bootstrap-expect=1 -client=0.0.0.0 -ui
     volumes:
       - /data/consul2:/consul/data
+    environment:
+      TZ: Asia/Shanghai
     ports:
       - "8500:8500"
       - "8300:8300"
@@ -15,6 +17,8 @@ services:
     container_name: redis
     hostname: redis
     image: redis:latest
+    environment:
+      TZ: Asia/Shanghai
     volumes:
       - /data/redis/data:/data
       - /data/redis/logs:/logs
@@ -27,6 +31,7 @@ services:
     ports:
       - "3306:3306"
     environment:
+      - TZ=Asia/Shanghai
       - MYSQL_DATABASE=StayEaseGo
       - MYSQL_ROOT_PASSWORD=root
   es:
@@ -51,6 +56,7 @@ services:
       - 5601:5601
     environment:
       - ELASTICSEARCH_HOSTS=http://es:9200
+      - TZ=Asia/Shanghai
     depends_on:
       - es
   kafka:
@@ -59,7 +65,7 @@ services:
     ports:
       - "9092:9092"
     # volumes:
-    #   - "/home/yjy/data/kafka/data:/bitnami"
+    #   - /home/yjy/data/kafka/data:/bitnami/kafka/data
     environment:
       # KRaft settings
       - KAFKA_CFG_NODE_ID=0
@@ -72,6 +78,7 @@ services:
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
       - KAFKA_JMX_HOSTNAME=${DOCKER_HOST_IP:-127.0.0.1}
+      - TZ=Asia/Shanghai
     # volumes:
     #   - /home/yjy/data/kafka/data:/opt/kafka-logs
   kafka-ui:
@@ -82,7 +89,8 @@ services:
     depends_on:
       - kafka
     environment:
-      DYNAMIC_CONFIG_ENABLED: "TRUE"
+      - DYNAMIC_CONFIG_ENABLED=TRUE
+      - TZ=Asia/Shanghai
   filebeat:
     image: elastic/filebeat:9.0.0
     container_name: filebeat
@@ -92,7 +100,19 @@ services:
     volumes:
       - ./deploy/filebeat/conf/filebeat.yml:/usr/share/filebeat/filebeat.yml
       - /mnt/docker/data/docker/containers:/mnt/docker/data/docker/containers
+      # - /mnt/docker/data/docker/containers/1:/mnt/1
     depends_on:
+      - kafka
+  go-stash:
+    image: kevinwan/go-stash:1.1.1
+    container_name: go-stash
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./deploy/go-stash/etc:/app/etc
+    restart: always
+    depends_on:
+      - es
       - kafka
   dtm:
     container_name: dtm
@@ -119,13 +139,29 @@ services:
       - 8002:8002
       - 8003:8003
       - 8004:8004
-    restart: always
     depends_on:
       - consul
       - es
       - mysql
       - redis
-      
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    restart: always
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "14268:14268"
+      - "9411:9411"
+    environment:
+      - SPAN_STORAGE_TYPE=elasticsearch
+      - ES_SERVER_URLS=http://es:9200
+      - LOG_LEVEL=debug
+    depends_on:
+      - es
   # nginx:
   #   container_name: nginx
   #   image: nginx:1.27.5-alpine
